@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MPI - Letak Geografis Indonesia</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        arabic: ['Amiri', 'serif'],
+                        display: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        kemenag: {
+                            light: '#E8F5E9',
+                            DEFAULT: '#0F5132', // Hijau Kemenag
+                            dark: '#07321C',
+                            gold: '#D4AF37', // Aksen Emas
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Icons (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 for elegant Modals -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- SortableJS for robust Mobile/Desktop Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
+    <!-- HTML2PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        /* Custom Styles & Animations */
+        body { -webkit-tap-highlight-color: transparent; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(15, 81, 50, 0.1);
+        }
+
+        .screen { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .screen.active { display: flex; opacity: 1; }
+        
+        .fade-in { animation: fadeIn 0.5s forwards; }
+        .slide-up { animation: slideUp 0.5s ease-out forwards; }
+        .floating { animation: float 3s ease-in-out infinite; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #0F5132; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #07321C; }
+
+        /* Map Animation on Cover */
+        .map-pulse { position: absolute; border-radius: 50%; background: rgba(212, 175, 55, 0.6); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+
+        /* Quiz Options */
+        .option-btn.selected { border-color: #D4AF37; background-color: #fefce8; color: #0F5132; font-weight: 600; }
+        .option-btn.correct { background-color: #d1fae5; border-color: #10b981; color: #065f46; }
+        .option-btn.wrong { background-color: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        
+        /* Sortable styles */
+        .sortable-ghost { opacity: 0.4; background-color: #e5e7eb; }
+        .drag-item { cursor: grab; }
+        .drag-item:active { cursor: grabbing; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; }
+            #report-content { box-shadow: none; max-width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 h-screen w-screen overflow-hidden flex justify-center items-center font-sans relative">
+
+    <!-- App Container (Responsive) -->
+    <div id="app-container" class="relative w-full max-w-5xl h-full sm:h-[95vh] bg-white sm:rounded-3xl sm:shadow-2xl overflow-hidden flex flex-col">
+
+        <!-- ==========================================
+             1. SPLASH SCREEN
+        =========================================== -->
+        <section id="screen-splash" class="screen active flex-col justify-center items-center bg-gradient-to-br from-kemenag-light to-white h-full w-full">
+            <div class="relative w-32 h-32 mb-6 floating text-kemenag">
+                <i class="fa-solid fa-earth-asia text-7xl text-kemenag"></i>
+                <div class="map-pulse top-1/2 left-1/2 w-8 h-8 -mt-4 -ml-4"></div>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-display font-bold text-kemenag mb-2 text-center">Letak Geografis<br>Indonesia</h1>
+            <div class="w-16 h-1 bg-kemenag-gold rounded mt-4"></div>
+        </section>
+
+        <!-- ==========================================
+             2. COVER SCREEN
+        =========================================== -->
+        <section id="screen-cover" class="screen flex-col bg-cover bg-center h-full w-full relative" style="background-image: url('https://www.transparenttextures.com/patterns/cartographer.png'); background-color: #f0fdf4;">
+            <div class="absolute inset-0 bg-gradient-to-b from-white/60 to-white/90"></div>
+            
+            <div class="relative z-10 flex flex-col h-full p-6 md:p-12 items-center justify-center text-center">
+                <span class="px-4 py-1 bg-kemenag text-white rounded-full text-sm font-semibold mb-4 shadow-md uppercase tracking-wider">IPAS • Kelas V • MI</span>
+                
+                <h1 class="text-4xl md:text-6xl font-display font-bold text-kemenag-dark mb-6 drop-shadow-sm slide-up">
+                    Letak Geografis<br><span class="text-kemenag-gold">Indonesia</span>
+                </h1>
+                
+                <!-- Interactive SVG Map Graphic -->
+                <div class="w-64 h-64 md:w-80 md:h-80 mb-8 relative slide-up delay-100">
+                    <svg viewBox="0 0 200 200" class="w-full h-full text-kemenag drop-shadow-xl floating">
+                        <!-- Abstract Indonesia Map Shape -->
+                        <path fill="currentColor" d="M30,120 Q50,110 70,120 T110,130 T150,110 T180,130 Q170,140 150,150 T100,160 T50,150 Z" />
+                        <path fill="#D4AF37" d="M40,90 Q50,80 60,95 T80,85 T95,100 Z" /> <!-- Sumatra approx -->
+                        <path fill="#0F5132" d="M120,70 Q130,60 140,80 T150,90 Z" /> <!-- Sulawesi approx -->
+                        <!-- Points -->
+                        <circle cx="125" cy="75" r="4" fill="#ef4444" class="animate-ping" /> <!-- Gorontalo Area -->
+                    </svg>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md slide-up delay-200">
+                    <button onclick="showModal('info-pengembang')" class="flex-1 py-3 px-4 bg-white text-kemenag border-2 border-kemenag rounded-xl font-bold hover:bg-green-50 transition shadow-sm">
+                        <i class="fa-solid fa-user-tie mr-2"></i> Pengembang
+                    </button>
+                    <button onclick="showModal('tujuan-belajar')" class="flex-1 py-3 px-4 bg-white text-kemenag border-2 border-kemenag rounded-xl font-bold hover:bg-green-50 transition shadow-sm">
+                        <i class="fa-solid fa-bullseye mr-2"></i> Tujuan
+                    </button>
+                </div>
+                
+                <button onclick="navigate('form')" class="mt-6 w-full max-w-md py-4 px-6 bg-gradient-to-r from-kemenag to-green-700 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:-translate-y-1 transition-all slide-up delay-300">
+                    MULAI BELAJAR <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+            
+            <!-- Floating Modals for Cover (Hidden by default) -->
+            <div id="modal-info-pengembang" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 fade-in">
+                <div class="glass-panel w-full max-w-sm rounded-2xl p-6 text-center relative slide-up">
+                    <button onclick="hideModal('info-pengembang')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    <img src="https://placehold.co/150x150/0F5132/D4AF37?text=FY" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'50\' fill=\'%230F5132\'/><text x=\'50\' y=\'65\' font-size=\'40\' text-anchor=\'middle\' fill=\'%23D4AF37\'>FY</text></svg>'" alt="Foto Guru" class="w-32 h-32 rounded-full mx-auto border-4 border-kemenag-gold object-cover mb-4 shadow-lg">
+                    <h3 class="font-display font-bold text-xl text-kemenag-dark">Ferawati Yahidji, S.Pd.I</h3>
+                    <p class="text-gray-600 mb-2 font-medium">MIM Pone</p>
+                    <div class="inline-flex items-center text-sm bg-green-100 text-kemenag px-3 py-1 rounded-full mb-6">
+                        <i class="fa-regular fa-envelope mr-2"></i> guru.madrasah@kemenag.go.id
+                    </div>
+                    <button onclick="hideModal('info-pengembang')" class="w-full py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">Kembali ke Cover</button>
+                </div>
+            </div>
+
+            <div id="modal-tujuan-belajar" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40 fade-in">
+                <div class="glass-panel w-full max-w-md rounded-2xl p-6 relative slide-up">
+                    <button onclick="hideModal('tujuan-belajar')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    <h3 class="font-display font-bold text-xl text-kemenag mb-4 border-b-2 border-kemenag-gold pb-2"><i class="fa-solid fa-bullseye text-kemenag-gold mr-2"></i> Tujuan Pembelajaran</h3>
+                    <p class="text-gray-800 text-lg mb-4 text-center font-medium">"Mengidentifikasi letak geografis Indonesia melalui pengamatan peta."</p>
+                    <div class="bg-green-50 p-4 rounded-xl mb-6 text-sm text-gray-700">
+                        <p class="font-arabic text-2xl text-right mb-2 text-kemenag-dark" dir="rtl">وَجَعَلْنٰكُمْ شُعُوْبًا وَّقَبَاۤىِٕلَ لِتَعَارَفُوْا</p>
+                        <p class="italic">"...dan Kami jadikan kamu berbangsa-bangsa dan bersuku-suku agar kamu saling mengenal..." (QS. Al-Hujurat: 13)</p>
+                        <hr class="my-2 border-green-200">
+                        <p class="font-semibold text-kemenag"><i class="fa-solid fa-heart text-red-500 mr-1"></i> Nilai KBC:</p>
+                        <p>Memahami posisi bangsa kita untuk memupuk rasa cinta tanah air dan persaudaraan antar sesama di atas bumi titipan Allah.</p>
+                    </div>
+                    <button onclick="hideModal('tujuan-belajar')" class="w-full py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">Kembali ke Cover</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             3. FORM IDENTITAS
+        =========================================== -->
+        <section id="screen-form" class="screen flex-col bg-gray-50 h-full w-full p-6 md:p-12 overflow-y-auto">
+            <div class="max-w-md w-full mx-auto bg-white rounded-2xl shadow-xl p-8 border-t-4 border-kemenag slide-up mt-auto mb-auto">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-kemenag text-2xl">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                    <h2 class="text-2xl font-display font-bold text-gray-800">Identitas Siswa</h2>
+                    <p class="text-gray-500 text-sm mt-1">Silakan isi data diri untuk memulai belajar.</p>
+                </div>
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
+                        <input type="text" id="input-nama" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-kemenag focus:border-kemenag outline-none transition" placeholder="Contoh: Ahmad Abdullah">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Kelas</label>
+                        <input type="text" id="input-kelas" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-kemenag focus:border-kemenag outline-none transition" placeholder="Contoh: V A">
+                    </div>
+                    <button onclick="submitForm()" class="w-full mt-4 py-3 px-4 bg-kemenag text-white rounded-xl font-bold hover:bg-kemenag-dark transition shadow-md">
+                        Lanjut <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             4. PANDUAN PENGGUNA (SLIDES)
+        =========================================== -->
+        <section id="screen-guide" class="screen flex-col h-full w-full bg-white relative">
+            <div class="flex-1 flex flex-col justify-center p-8 text-center" id="guide-content-area">
+                <!-- Injected via JS -->
+            </div>
+            
+            <div class="bg-gray-50 p-4 border-t border-gray-200 flex justify-between items-center">
+                <div class="flex gap-2" id="guide-dots">
+                    <!-- Dots -->
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-guide-prev" onclick="changeGuideSlide(-1)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hidden">Kembali</button>
+                    <button id="btn-guide-next" onclick="changeGuideSlide(1)" class="px-6 py-2 bg-kemenag text-white rounded-lg font-medium shadow">Selanjutnya</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             5. DASHBOARD / MENU UTAMA
+        =========================================== -->
+        <section id="screen-dashboard" class="screen flex-col h-full w-full bg-gray-50">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-kemenag to-green-800 text-white p-6 md:p-8 rounded-b-[2rem] shadow-lg relative overflow-hidden">
+                <!-- Decorative elements -->
+                <div class="absolute -right-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full"></div>
+                <div class="absolute right-20 -bottom-10 w-24 h-24 bg-kemenag-gold opacity-20 rounded-full"></div>
+                
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-medium text-green-200 mb-1">Selamat datang di MPI,</p>
+                        <h2 id="dash-nama" class="text-2xl md:text-3xl font-display font-bold">Nama Siswa</h2>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-xs bg-kemenag-gold/80 px-3 py-1 rounded-full text-black font-semibold"><i class="fa-solid fa-location-dot mr-1"></i> MIM Pone</span>
+                        </div>
+                    </div>
+                    <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center text-kemenag text-2xl shadow-inner border-4 border-green-700">
+                        <i class="fa-solid fa-user-graduate"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu Cards -->
+            <div class="flex-1 overflow-y-auto p-6 pb-20">
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <p class="text-gray-600 font-medium mb-4 text-center">Selesaikan tahap belajar secara berurutan.</p>
+
+                    <!-- Card Belajar -->
+                    <div onclick="navigate('belajar')" class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-blue-500 flex items-center cursor-pointer hover:shadow-md transition group">
+                        <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-2xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-book-open"></i>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h3 class="font-bold text-lg text-gray-800">1. BELAJAR</h3>
+                            <p class="text-sm text-gray-500">Materi Mendalam Letak Geografis</p>
+                        </div>
+                        <div class="text-blue-500">
+                            <i class="fa-solid fa-chevron-right text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Card Bermain (Locked/Unlocked via JS) -->
+                    <div id="card-bermain" onclick="handleMenuClick('bermain')" class="bg-gray-100 p-5 rounded-2xl border border-gray-200 flex items-center cursor-pointer opacity-70 relative">
+                        <div class="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-2xl z-10 flex items-center justify-end pr-5" id="lock-bermain">
+                            <span class="bg-gray-800 text-white text-xs px-3 py-1 rounded-full font-semibold shadow"><i class="fa-solid fa-lock mr-1"></i> Terkunci</span>
+                        </div>
+                        <div class="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 text-2xl">
+                            <i class="fa-solid fa-gamepad"></i>
+                        </div>
+                        <div class="ml-4 flex-1 relative z-0">
+                            <h3 class="font-bold text-lg text-gray-800">2. BERMAIN</h3>
+                            <p class="text-sm text-gray-500">Tantangan Interaktif Seru</p>
+                        </div>
+                    </div>
+
+                    <!-- Card Berlatih -->
+                    <div id="card-berlatih" onclick="handleMenuClick('berlatih')" class="bg-gray-100 p-5 rounded-2xl border border-gray-200 flex items-center cursor-pointer opacity-70 relative">
+                        <div class="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-2xl z-10 flex items-center justify-end pr-5" id="lock-berlatih">
+                            <span class="bg-gray-800 text-white text-xs px-3 py-1 rounded-full font-semibold shadow"><i class="fa-solid fa-lock mr-1"></i> Terkunci</span>
+                        </div>
+                        <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center text-red-600 text-2xl">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                        </div>
+                        <div class="ml-4 flex-1 relative z-0">
+                            <h3 class="font-bold text-lg text-gray-800">3. BERLATIH</h3>
+                            <p class="text-sm text-gray-500">Asesmen Literasi & Numerasi</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             6. MENU BELAJAR (5 Slides Content)
+        =========================================== -->
+        <section id="screen-belajar" class="screen flex-col h-full w-full bg-white relative">
+            <!-- Header Nav -->
+            <div class="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+                <button onclick="confirmExit('dashboard')" class="text-gray-500 hover:text-gray-800 w-10 h-10 flex justify-center items-center rounded-full hover:bg-gray-100">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-center">
+                    <h2 class="font-bold text-kemenag">Materi Belajar</h2>
+                    <p class="text-xs text-gray-500" id="materi-progress-text">Bagian 1 dari 5</p>
+                </div>
+                <div class="w-10"></div> <!-- spacer -->
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 h-1.5">
+                <div id="materi-progress-bar" class="bg-blue-500 h-1.5 transition-all duration-300 w-1/5"></div>
+            </div>
+
+            <!-- Content Area (Scrollable) -->
+            <div class="flex-1 overflow-y-auto p-5 md:p-8" id="materi-content-area">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+
+        <!-- ==========================================
+             7. MENU BERMAIN (10 Challenges)
+        =========================================== -->
+        <section id="screen-bermain" class="screen flex-col h-full w-full bg-orange-50 relative">
+             <div class="bg-orange-500 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-md">
+                <button onclick="confirmExit('dashboard')" class="text-white hover:bg-orange-600 w-10 h-10 flex justify-center items-center rounded-full">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-center font-bold">
+                    Tantangan Bermain
+                </div>
+                <div class="bg-white/20 px-3 py-1 rounded-full text-sm font-semibold" id="bermain-counter">1/10</div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-5 pb-24" id="bermain-content-area">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+
+        <!-- ==========================================
+             8. MENU BERLATIH (10 Assessment)
+        =========================================== -->
+        <section id="screen-berlatih" class="screen flex-col h-full w-full bg-gray-50 relative">
+             <div class="bg-red-700 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-md">
+                <button onclick="confirmExit('dashboard')" class="text-white hover:bg-red-800 w-10 h-10 flex justify-center items-center rounded-full">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-center font-bold">
+                    Asesmen Berlatih
+                </div>
+                <div class="bg-white/20 px-3 py-1 rounded-full text-sm font-semibold" id="berlatih-counter">No 1</div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-24" id="berlatih-content-area">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+
+        <!-- ==========================================
+             9. REPORT SCREEN (PDF)
+        =========================================== -->
+        <section id="screen-report" class="screen flex-col h-full w-full bg-gray-100 overflow-y-auto p-4 md:p-8">
+            <div class="max-w-2xl mx-auto w-full mb-4 flex justify-between items-center print:hidden">
+                <button onclick="navigate('dashboard')" class="px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm font-semibold text-gray-700 hover:bg-gray-50"><i class="fa-solid fa-home mr-2"></i> Ke Beranda</button>
+                <button onclick="downloadPDF()" class="px-4 py-2 bg-kemenag text-white rounded-lg shadow-sm font-bold hover:bg-kemenag-dark"><i class="fa-solid fa-file-pdf mr-2"></i> Cetak / Unduh PDF</button>
+            </div>
+
+            <!-- Area to be converted to PDF -->
+            <div id="report-content" class="max-w-2xl mx-auto w-full bg-white shadow-xl p-8 relative">
+                <!-- Watermark -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none z-0">
+                    <i class="fa-solid fa-award text-[20rem]"></i>
+                </div>
+                
+                <div class="relative z-10">
+                    <!-- KOP / Header PDF -->
+                    <div class="border-b-4 border-kemenag pb-4 mb-6 flex items-center gap-4">
+                        <img src="https://placehold.co/100x100/0F5132/ffffff?text=MIM" class="w-16 h-16 rounded-full" alt="Logo">
+                        <div class="flex-1 text-center">
+                            <h2 class="font-display font-bold text-xl text-kemenag">LAPORAN HASIL BELAJAR (MPI)</h2>
+                            <h3 class="font-semibold text-gray-700">Mata Pelajaran IPAS - Fase C (Kelas V)</h3>
+                            <p class="text-sm text-gray-600">Topik: Letak Geografis Indonesia</p>
+                        </div>
+                        <div class="w-16"></div> <!-- Balance -->
+                    </div>
+
+                    <!-- Identitas -->
+                    <div class="grid grid-cols-2 gap-4 mb-6 text-sm border border-gray-200 p-4 rounded-lg bg-gray-50">
+                        <div>
+                            <p class="text-gray-500">Nama Siswa:</p>
+                            <p class="font-bold text-lg" id="rep-nama">-</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">Kelas:</p>
+                            <p class="font-bold text-lg" id="rep-kelas">-</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">Madrasah:</p>
+                            <p class="font-bold text-lg">MIM Pone</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">Guru Pengampu:</p>
+                            <p class="font-semibold">Ferawati Yahidji, S.Pd.I</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">Tanggal Akses:</p>
+                            <p class="font-semibold" id="rep-tanggal">-</p>
+                        </div>
+                    </div>
+
+                    <!-- Hasil Berlatih (Utama) -->
+                    <div class="mb-6">
+                        <h4 class="font-bold text-kemenag mb-3 border-b-2 inline-block border-kemenag-gold">A. Rekapitulasi Asesmen (BERLATIH)</h4>
+                        <div class="flex items-center justify-around bg-green-50 p-6 rounded-xl border border-green-200">
+                            <div class="text-center">
+                                <p class="text-gray-600 font-semibold mb-1">Total Nilai</p>
+                                <div class="text-5xl font-display font-bold text-kemenag" id="rep-skor-akhir">0</div>
+                                <p class="text-sm text-gray-500 mt-1">Skala 100</p>
+                            </div>
+                            <div class="h-16 w-px bg-green-200"></div>
+                            <div class="text-center">
+                                <p class="text-gray-600 font-semibold mb-1">Predikat</p>
+                                <div class="text-2xl font-bold text-kemenag-gold bg-white px-4 py-2 rounded-lg border border-yellow-200 shadow-sm" id="rep-predikat">Mulai Berkembang</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analisis Level & Bermain -->
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-sm mb-2">Penguasaan Level Soal (Literasi & Numerasi)</h4>
+                            <ul class="text-sm space-y-2 bg-gray-50 p-3 rounded border">
+                                <li class="flex justify-between"><span>Level 1 (Dasar):</span> <span class="font-bold" id="rep-lvl1">0/3</span></li>
+                                <li class="flex justify-between"><span>Level 2 (Penerapan):</span> <span class="font-bold" id="rep-lvl2">0/4</span></li>
+                                <li class="flex justify-between"><span>Level 3 (HOTS/Penalaran):</span> <span class="font-bold" id="rep-lvl3">0/3</span></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-sm mb-2">Performa Misi (BERMAIN)</h4>
+                            <div class="bg-orange-50 p-3 rounded border border-orange-100 flex items-center justify-between h-[88px]">
+                                <div>
+                                    <p class="text-sm text-orange-800 font-medium">Tantangan Diselesaikan</p>
+                                    <p class="text-2xl font-bold text-orange-600">10 / 10</p>
+                                </div>
+                                <i class="fa-solid fa-trophy text-4xl text-orange-300 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KBC Note & TTD -->
+                    <div class="border-t border-dashed border-gray-300 pt-4">
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-3 text-sm text-gray-700 italic mb-6 rounded-r">
+                            <span class="font-bold not-italic block mb-1">Rekomendasi & Nilai KBC:</span>
+                            Ananda telah menunjukkan usaha yang baik. Teruslah mencintai ilmu, merawat lingkungan persawahan desa kita sebagai wujud syukur kepada Allah, dan perkuat literasi.
+                        </div>
+                        
+                        <div class="flex justify-end text-sm text-center">
+                            <div>
+                                <p>Limboto Barat, <span id="rep-ttd-tgl">-</span></p>
+                                <p class="mb-12">Mengetahui, Guru Kelas</p>
+                                <p class="font-bold underline">Ferawati Yahidji, S.Pd.I</p>
+                                <p class="text-xs text-gray-500">NIP. -</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- DATA & LOGIKA JAVASCRIPT -->
+    <script>
+        // ==========================================
+        // DATA CONTENT: BELAJAR (5 Slides)
+        // ==========================================
+        const belajarData = [
+            {
+                title: "1. Mengenal Letak Geografis Indonesia",
+                content: `
+                    <p class="mb-4">Letak geografis adalah letak suatu wilayah dilihat dari kenyataannya di permukaan bumi. Indonesia memiliki posisi yang sangat strategis. Secara geografis, Indonesia terletak di antara <strong>dua benua</strong> (Asia dan Australia) dan <strong>dua samudra</strong> (Hindia dan Pasifik).</p>
+                    <p class="mb-4">Bayangkan Desa Pone tempat kita tinggal di Gorontalo. Kita berada di Pulau Sulawesi yang berada di tengah-tengah wilayah nusantara yang luas ini. Posisi silang dunia ini membuat Indonesia kaya akan keberagaman.</p>
+                    <div class="bg-green-50 p-4 rounded-xl border border-green-200 mb-4">
+                        <p class="font-arabic text-2xl text-right mb-2 text-kemenag-dark" dir="rtl">وَجَعَلْنٰكُمْ شُعُوْبًا وَّقَبَاۤىِٕلَ لِتَعَارَفُوْا</p>
+                        <p class="italic text-sm text-gray-700">"...dan Kami jadikan kamu berbangsa-bangsa dan bersuku-suku agar kamu saling mengenal..." (QS. Al-Hujurat: 13)</p>
+                        <hr class="my-2 border-green-200">
+                        <p class="text-sm"><strong>Nilai Cinta (KBC):</strong> Allah menempatkan kita di wilayah strategis agar kita mengenal bangsa lain dan menyebarkan kasih sayang (rahmatan lil 'alamin).</p>
+                    </div>
+                `,
+                quiz: {
+                    q: "Berdasarkan letak geografisnya, Indonesia diapit oleh dua samudra, yaitu...",
+                    options: ["Hindia dan Atlantik", "Hindia dan Pasifik", "Pasifik dan Arktik"],
+                    answer: 1 // index 1
+                }
+            },
+            {
+                title: "2. Pengaruh Letak Geografis Terhadap Iklim",
+                content: `
+                    <p class="mb-4">Posisi Indonesia di sekitar garis khatulistiwa dan diapit dua samudra menyebabkan Indonesia beriklim tropis dan memiliki dua musim: <strong>Musim Hujan</strong> dan <strong>Musim Kemarau</strong>. Hal ini dipengaruhi oleh pergerakan Angin Muson.</p>
+                    <p class="mb-4">Bagi masyarakat di Kecamatan Limboto Barat, khususnya di Desa Pone yang mayoritas merupakan daerah persawahan, pergantian musim ini sangat penting. Petani sangat menantikan musim hujan untuk mengairi sawah-sawah mereka agar padi tumbuh subur.</p>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-4 text-sm">
+                        <p><strong>Nilai Cinta Lingkungan:</strong> Musim kemarau mengajarkan kita untuk hemat air. Cinta alam berarti menjaga sumber air di desa kita agar irigasi sawah tetap berjalan walau curah hujan sedikit.</p>
+                    </div>
+                `,
+                quiz: {
+                    q: "Angin yang bertiup dan menyebabkan musim hujan yang ditunggu petani di Desa Pone adalah...",
+                    options: ["Angin Muson Barat", "Angin Muson Timur", "Angin Muson Tropis"],
+                    answer: 0
+                }
+            },
+            {
+                title: "3. Keragaman Flora dan Fauna",
+                content: `
+                    <p class="mb-4">Letak geografis membuat Indonesia menjadi perlintasan percampuran makhluk hidup. Secara umum, persebaran flora dan fauna di Indonesia dibagi menjadi tiga wilayah: Asiatis (Barat), Peralihan (Tengah), dan Australis (Timur).</p>
+                    <p class="mb-4">Provinsi Gorontalo masuk dalam wilayah <strong>Peralihan</strong>. Di daerah persawahan atau hutan sekitar Desa Pone, kita mungkin masih bisa melihat burung khas Sulawesi atau serangga endemik yang berperan penting dalam ekosistem pertanian.</p>
+                    <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 mb-4 text-sm">
+                        <p><strong>Tadabbur Alam (KBC):</strong> Setiap hewan seperti cacing tanah atau burung pemakan hama di sawah diciptakan Allah dengan tugasnya. Menyayangi makhluk Allah berarti tidak memburu hewan yang menjaga keseimbangan sawah kita.</p>
+                    </div>
+                `,
+                quiz: {
+                    q: "Gorontalo termasuk dalam wilayah persebaran fauna tipe...",
+                    options: ["Asiatis", "Peralihan", "Australis"],
+                    answer: 1
+                }
+            },
+            {
+                title: "4. Potensi Ekonomi dan Sosial Budaya",
+                content: `
+                    <p class="mb-4">Berada di jalur persilangan perdagangan internasional sejak zaman dahulu, Indonesia menjadi tempat pertemuan berbagai budaya. Ini membawa potensi ekonomi besar baik dari sektor perhubungan (laut) maupun agraris.</p>
+                    <p class="mb-4">Lahan persawahan di Desa Pone adalah bukti potensi agraris lokal. Hasil panen padi bukan hanya untuk makan, tapi bisa diperjualbelikan (ekonomi). Secara sosial, para petani Gorontalo memiliki tradisi gotong royong (Huyula) saat musim tanam dan panen tiba.</p>
+                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-200 mb-4 text-sm">
+                        <p><strong>Nilai Cinta Sesama:</strong> Tradisi 'Huyula' atau gotong royong di sawah adalah bentuk nyata cinta dan kepedulian terhadap tetangga. Pekerjaan berat menjadi ringan jika dikerjakan bersama.</p>
+                    </div>
+                `,
+                quiz: {
+                    q: "Tradisi gotong royong di Gorontalo yang sering dilakukan di area persawahan dikenal dengan sebutan...",
+                    options: ["Mapalus", "Huyula", "Subak"],
+                    answer: 1
+                }
+            },
+            {
+                title: "5. Menjaga Kelestarian Wilayah Nusantara",
+                content: `
+                    <p class="mb-4">Letak strategis dan kekayaan alam Indonesia rentan mengalami kerusakan jika tidak dijaga. Pencemaran sungai, alih fungsi lahan sawah, dan penebangan liar dapat merusak keseimbangan.</p>
+                    <p class="mb-4">Di daerah persawahan Limboto Barat, kita harus menghindari penggunaan pestisida kimia berlebih yang mengalir ke saluran air, agar ikan-ikan dan tanah tetap hidup.</p>
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-200 mb-4">
+                        <p class="font-arabic text-xl text-right mb-2 text-kemenag-dark" dir="rtl">ظَهَرَ الْفَسَادُ فِى الْبَرِّ وَالْبَحْرِ بِمَا كَسَبَتْ اَيْدِى النَّاسِ</p>
+                        <p class="italic text-sm text-gray-700">"Telah tampak kerusakan di darat dan di laut disebabkan perbuatan tangan manusia..." (QS. Ar-Rum: 41)</p>
+                        <p class="mt-2 text-sm"><strong>Amanah Khilafah:</strong> Bukti cinta kita kepada Allah adalah dengan menjadi khalifah (pemimpin/penjaga) bumi yang tidak berbuat kerusakan di alam sekitar kita.</p>
+                    </div>
+                `,
+                quiz: {
+                    q: "Menurut QS. Ar-Rum ayat 41, kerusakan alam (seperti di persawahan) pada dasarnya disebabkan oleh...",
+                    options: ["Faktor cuaca ekstrem", "Perbuatan tangan manusia", "Letak geografis wilayah"],
+                    answer: 1
+                }
+            }
+        ];
+
+        // ==========================================
+        // DATA CONTENT: BERMAIN (10 Challenges, Rich Stimulus)
+        // ==========================================
+        const bermainData = [
+            {
+                type: "pg", // Pilihan Ganda
+                stimulus: "Desa Pone yang terletak di Kecamatan Limboto Barat, Kabupaten Gorontalo, merupakan daerah persawahan yang subur. Kesuburan ini sangat dipengaruhi oleh letak geografis Indonesia yang berada di antara Benua Asia dan Benua Australia, serta Samudra Hindia dan Samudra Pasifik. Posisi silang ini membuat Indonesia dilewati oleh angin muson yang berganti arah setiap enam bulan sekali. Angin Muson Barat membawa banyak uap air dari samudra luas, menyebabkan musim hujan yang sangat dinantikan oleh para petani di Desa Pone untuk mulai menanam padi secara serentak. Sementara itu, Angin Muson Timur membawa udara kering. Sebagai wujud syukur (KBC), petani memanfaatkan air hujan sebaik-baiknya tanpa membuang-buang air.",
+                q: "Berdasarkan teks di atas, faktor geografis apa yang menyebabkan petani di Desa Pone dapat merencanakan waktu tanam padi secara serentak?",
+                options: ["Pengaruh pergerakan Angin Muson yang menciptakan musim hujan.", "Posisi Gorontalo yang dekat dengan Benua Australia.", "Kondisi tanah Desa Pone yang tidak terpengaruh cuaca.", "Adanya pertemuan dua samudra besar yang menghasilkan garam."],
+                ans: 0
+            },
+            {
+                type: "order", // Mengurutkan
+                stimulus: "Perjalanan air sangat penting bagi persawahan di Limboto Barat. Sistem tata air yang baik merupakan rahmat Allah SWT. Hujan yang turun dari langit, karena pengaruh angin muson dari samudra, membasahi dataran tinggi Gorontalo. Air tersebut kemudian mengalir melalui sungai-sungai kecil menuju dataran rendah tempat persawahan berada. Setelah menyuburkan tanaman padi yang dikelola dengan penuh cinta dan kerja keras oleh para petani, sisa air irigasi yang bersih pada akhirnya akan bermuara ke Danau Limboto atau laut lepas. Menjaga kebersihan urutan aliran ini adalah tanggung jawab ekologis (cinta lingkungan) setiap penduduk desa.",
+                q: "Urutkan perjalanan air alami dari hulu hingga hilir yang menunjang persawahan tersebut berdasarkan logika geografis!",
+                items: [
+                    { id: '1', text: "Hujan turun di wilayah dataran tinggi" },
+                    { id: '2', text: "Air mengalir lewat sungai-sungai kecil" },
+                    { id: '3', text: "Mengairi areal persawahan di dataran rendah" },
+                    { id: '4', text: "Bermuara ke Danau Limboto / Laut" }
+                ],
+                // ans implies correct order is 1-2-3-4
+            },
+            {
+                type: "pg",
+                stimulus: "Letak Indonesia yang strategis sejak abad kejayaan Islam telah menjadikan wilayah Nusantara sebagai jalur perdagangan internasional. Para pedagang dari Arab, Persia, dan Gujarat tidak hanya membawa barang dagangan melainkan juga mendakwahkan agama Islam dengan damai, penuh akhlak karimah, dan cinta kasih. Jalur pelayaran ini melewati Selat Malaka, laut Jawa, hingga ke wilayah Sulawesi termasuk perairan sekitar Gorontalo. Interaksi antar bangsa ini sesuai dengan hikmah QS. Al-Hujurat ayat 13 agar manusia saling mengenal (lita'arafu). Letak geografis menjadi jembatan silaturahmi peradaban.",
+                q: "Dari teks tersebut, keuntungan letak geografis Indonesia di bidang sosial budaya pada masa lampau adalah...",
+                options: ["Meningkatnya produksi padi di Gorontalo", "Masuknya ajaran Islam secara damai melalui jalur perdagangan", "Terjadinya monopoli perdagangan oleh bangsa asing", "Tersedianya banyak bahan tambang untuk diekspor"],
+                ans: 1
+            },
+            {
+                type: "match", // Menjodohkan
+                stimulus: "Secara geografis, wilayah flora dan fauna Indonesia terbagi tiga yang dibatasi oleh Garis Wallace dan Garis Weber. Indonesia bagian barat (Asiatis) memiliki ciri khas mamalia besar. Indonesia bagian tengah (Peralihan) yang meliputi pulau Sulawesi (termasuk wilayah Gorontalo) memiliki hewan endemik khas yang tidak ditemukan di tempat lain. Sedangkan Indonesia bagian timur (Australis) identik dengan burung berbulu indah. Di wilayah persawahan Pone sendiri, keanekaragaman hayati kecil seperti serangga sangat dilindungi petani karena menjaga keseimbangan ekosistem (cinta alam).",
+                q: "Pasangkan wilayah pembagian fauna dengan ciri utamanya (Tarik dari kiri ke kanan yang sesuai)!",
+                pairs: [
+                    { q: "Wilayah Barat (Asiatis)", a: "Mamalia besar seperti Gajah & Harimau" },
+                    { q: "Wilayah Tengah (Peralihan - Gorontalo)", a: "Hewan endemik seperti Anoa & Babi Rusa" },
+                    { q: "Wilayah Timur (Australis)", a: "Burung berbulu indah seperti Cendrawasih" }
+                ]
+            },
+            {
+                type: "pg_kompleks", // PG Kompleks (Checkbox)
+                stimulus: "Dahulu, para leluhur petani di Gorontalo menggunakan rasi bintang dan arah angin sebagai panduan bertani maupun melaut. Ilmu navigasi tradisional ini muncul berkat pengamatan terhadap letak geografis wilayah yang dipengaruhi iklim tropis. Di daerah persawahan Desa Pone, datangnya burung-burung migran dari benua lain (efek letak di antara dua benua) juga sering menjadi penanda alam transisi musim. Kearifan lokal ini mengajarkan kita untuk selalu peka, bersyukur, dan tidak merusak tatanan alam (QS. Ar-Rum: 41) agar siklus pergantian musim berjalan normal.",
+                q: "Pilihlah DUA (2) pernyataan yang BENAR mengenai letak geografis berdasarkan teks di atas! (Centang kotak yang sesuai)",
+                options: [
+                    "Pengetahuan arah angin dimanfaatkan leluhur sebagai panduan bertani.",
+                    "Indonesia hanya dipengaruhi oleh kondisi benua Asia tanpa pengaruh benua lain.",
+                    "Letak geografis menyebabkan wilayah Pone dikunjungi burung migran lintas benua.",
+                    "Kerusakan alam tidak memiliki pengaruh terhadap siklus musim tanam."
+                ],
+                ans: [0, 2] // indices of correct answers
+            },
+            // ... (adding 5 more simplified structurally to save space but maintaining length in description)
+            { type: "pg", stimulus: "Luas wilayah perairan Indonesia mendominasi dibandingkan daratannya, menjadikannya negara maritim. Namun, bagi masyarakat agraris di pedalaman Kecamatan Limboto Barat, laut tetap memberikan dampak. Penguapan air laut yang besar di perairan sekitar Sulawesi dan Teluk Tomini dibawa oleh angin ke daratan, berubah menjadi awan, lalu turun sebagai hujan yang menyirami sawah-sawah. Rantai hidrologi ini adalah bukti kebesaran Allah. Petani yang menanam padi dengan kasih sayang dan merawat saluran irigasi dari sampah, berarti ikut menjaga amanah Allah mengatur bumi.", q: "Mengapa wilayah laut (maritim) yang luas tetap berdampak positif bagi petani di daerah agraris (persawahan) pedalaman?", options: ["Laut menghasilkan ikan yang banyak untuk dikonsumsi petani", "Penguapan air laut berkontribusi besar pada terjadinya curah hujan", "Angin laut membawa udara panas yang mempercepat panen", "Lahan persawahan dapat langsung diairi menggunakan air laut"], ans: 1 },
+            { type: "order", stimulus: "Sebuah kapal barang membawa bantuan pupuk organik dari pelabuhan di Benua Asia menuju pulau Sulawesi, untuk didistribusikan ke daerah pertanian seperti Kabupaten Gorontalo. Letak strategis pelayaran ini memotong jalur internasional. Penggunaan pupuk organik dipilih oleh kelompok tani sebagai wujud penerapan 'Kurikulum Berbasis Cinta' lingkungan, agar kesuburan tanah titipan Allah tidak rusak oleh zat kimia berbahaya. Kapal tersebut harus berlayar melalui rute perairan yang tepat sebelum sampai ke daratan dan diangkut menuju Desa Pone.", q: "Urutkan rute logistik bantuan pupuk tersebut secara logis!", items: [{id:'1', text:"Berangkat dari Pelabuhan di Benua Asia"}, {id:'2', text:"Melintasi perairan Laut Sulawesi / Teluk Tomini"}, {id:'3', text:"Bongkar muat di pelabuhan laut Gorontalo"}, {id:'4', text:"Diangkut jalur darat ke persawahan Desa Pone"}], },
+            { type: "pg", stimulus: "Posisi Indonesia di garis cincin api (Ring of Fire) akibat pertemuan lempeng tektonik membuat wilayah ini memiliki banyak gunung berapi. Meskipun Gorontalo memiliki morfologi perbukitan, wilayah datarannya mendapat manfaat dari abu vulkanik purba yang terbawa air sungai dari wilayah pegunungan, membuat tanah persawahannya subur. Kesuburan ini adalah rezeki tak ternilai. Dalam Islam, mensyukuri tanah yang subur tidak hanya dengan lisan, tetapi dengan bekerja keras menanam, merawat tanaman tanpa henti (cinta pada pekerjaan), dan mengeluarkan zakat pertanian saat panen tiba.", q: "Sikap terbaik yang mencerminkan rasa syukur dan cinta terhadap kondisi geografis yang subur (berdasarkan teks) adalah...", options: ["Membiarkan tanah ditumbuhi rumput karena sudah subur", "Menjual seluruh hasil panen ke luar negeri", "Bekerja keras merawat tanaman dan menunaikan zakat", "Membangun pabrik industri besar di atas lahan sawah"], ans: 2 },
+            { type: "match", stimulus: "Letak astronomis dan geografis mempengaruhi zona waktu dan musim. Indonesia memiliki 3 zona waktu (WIB, WITA, WIT) karena bentangan bujurnya yang panjang. Provinsi Gorontalo terletak di wilayah Waktu Indonesia Tengah (WITA). Saat petani di Pone mulai shalat Dzuhur berjamaah pukul 12.00 WITA, saudara kita di Jawa baru bersiap karena waktu masih menunjukkan pukul 11.00 WIB. Perbedaan waktu ini mengajarkan kita toleransi dan pemahaman atas kebesaran Allah yang mengatur rotasi bumi secara presisi tiada cacat.", q: "Pasangkan wilayah dengan zona waktu yang benar!", pairs: [{q:"Provinsi Gorontalo & Sulawesi", a:"Waktu Indonesia Tengah (WITA)"}, {q:"Pulau Jawa & Sumatera", a:"Waktu Indonesia Barat (WIB)"}, {q:"Pulau Papua & Maluku", a:"Waktu Indonesia Timur (WIT)"}] },
+            { type: "pg_kompleks", stimulus: "Di akhir musim kemarau, lahan persawahan Desa Pone mulai kering. Angin muson barat diprediksi segera datang membawa uap air dari Samudra Hindia melintasi wilayah Indonesia. Menyambut perubahan cuaca ini, warga desa melakukan gotong royong membersihkan saluran irigasi dan sungai desa dari tumpukan sampah plastik. Kegiatan ini adalah bentuk nyata nilai 'Cinta Alam'. Jika saluran bersih, curah hujan yang tinggi tidak akan menyebabkan banjir yang merusak tanaman padi (QS. Ar-Rum: 41), melainkan tertampung dan mengalir dengan baik.", q: "Pilihlah DUA (2) dampak positif dari kegiatan gotong royong yang dilakukan warga menyambut angin muson barat! (Centang 2 jawaban)", options: ["Mencegah terjadinya bencana banjir saat hujan lebat tiba.", "Menghindari masuknya burung migran dari benua Australia.", "Memastikan air hujan mengairi sawah dengan lancar dan bersih.", "Mengubah iklim tropis Gorontalo menjadi iklim sub-tropis."], ans: [0, 2] }
+        ];
+
+        // ==========================================
+        // DATA CONTENT: BERLATIH (10 Asesmen Berjenjang)
+        // ==========================================
+        const berlatihData = [
+            // Level 1: Dasar/Pemahaman (No 1-3, @8 pts = 24)
+            { level: 1, pts: 8, stimulus: "Indonesia merupakan negara kepulauan terbesar di dunia yang diapit oleh dua samudra besar, yaitu Samudra Pasifik di sebelah timur dan timur laut, serta Samudra Hindia di sebelah barat dan selatan. Selain samudra, Indonesia juga diapit oleh Benua Asia dan Benua Australia. Posisi ini menempatkan Indonesia pada persimpangan lalu lintas dunia. Secara spesifik, wilayah Provinsi Gorontalo yang berada di lengan utara Pulau Sulawesi berbatasan langsung dengan Laut Sulawesi di bagian utara dan Teluk Tomini di bagian selatan.", q: "Samudra yang mengapit posisi geografis Negara Indonesia adalah...", options: ["Samudra Arktik dan Atlantik", "Samudra Hindia dan Pasifik", "Samudra Pasifik dan Atlantik", "Samudra Hindia dan Arktik"], ans: 1 },
+            { level: 1, pts: 8, stimulus: "Al-Qur'an surah Al-Hujurat ayat 13 menyatakan bahwa Allah SWT menciptakan manusia berbangsa-bangsa dan bersuku-suku agar saling mengenal (lita'arafu). Konsep ini sangat relevan dengan letak silang geografis Indonesia. Karena berada di persimpangan jalur pelayaran kuno antar benua, beragam bangsa (Arab, Tiongkok, India, Eropa) datang ke Nusantara. Interaksi ini melahirkan keragaman budaya, bahasa, dan agama yang luar biasa di Indonesia. Sikap terbaik (Kurikulum Berbasis Cinta) dalam menghadapi keragaman ini adalah saling menghormati dan hidup rukun berdampingan.", q: "Apa tujuan utama diciptakannya manusia berbangsa-bangsa dan bersuku-suku menurut QS. Al-Hujurat ayat 13 yang dikaitkan dengan letak geografis Indonesia?", options: ["Agar bisa bersaing memperebutkan wilayah", "Agar saling mengenal dan hidup rukun (lita'arafu)", "Untuk memisahkan kebudayaan barat dan timur", "Untuk menyatukan seluruh bahasa di dunia"], ans: 1 },
+            { level: 1, pts: 8, stimulus: "Perhatikan peta wilayah Kecamatan Limboto Barat! Di sana terdapat hamparan sawah hijau di Desa Pone yang membentang luas. Karena letaknya di dekat garis ekuator (khatulistiwa), wilayah Gorontalo menerima sinar matahari yang berlimpah sepanjang tahun. Kondisi iklim tropis ini memungkinkan para petani menanam padi lebih dari satu kali dalam setahun (bisa dua atau tiga kali masa tanam). Namun, kelangsungan pertanian ini sangat bergantung pada suplai air saat musim kemarau tiba akibat tiupan angin dari arah timur (Australia).", q: "Salah satu keuntungan letak wilayah Gorontalo di sekitar garis khatulistiwa bagi petani di Desa Pone adalah...", options: ["Mengalami empat musim yang berbeda setiap tahunnya", "Mendapat sinar matahari sepanjang tahun untuk bertani", "Bebas dari pengaruh angin muson dan pergantian cuaca", "Suhu udara selalu dingin seperti di wilayah pegunungan salju"], ans: 1 },
+            
+            // Level 2: Penerapan/Analisis Ringan (No 4-7, @10 pts = 40)
+            { level: 2, pts: 10, stimulus: "Tabel Curah Hujan Bulanan (Simulasi Gorontalo):<br>Okt-Maret: Rata-rata curah hujan tinggi (200-300 mm/bulan).<br>April-Sept: Rata-rata curah hujan rendah (50-100 mm/bulan).<br><br>Data di atas dipengaruhi oleh sirkulasi angin muson di atas Kepulauan Indonesia. Petani pintar di Desa Pone akan menyusun kalender tanam dengan mempertimbangkan data iklim tersebut. Padi membutuhkan banyak air terutama pada fase pertumbuhan awal. Jika petani memaksakan menanam padi varietas yang butuh banyak air pada bulan Agustus tanpa sistem irigasi teknis yang memadai, tanaman tersebut berisiko mengalami kekeringan dan gagal panen.", q: "Berdasarkan simulasi data di atas, keputusan penerapan (aplikasi) waktu yang paling TEPAT bagi petani sawah tadah hujan di Pone untuk mulai menyemai benih padi adalah...", options: ["Bulan Mei", "Bulan Agustus", "Bulan November", "Bulan Juli"], ans: 2 },
+            { level: 2, pts: 10, stimulus: "Dalam ajaran Islam, merusak alam sangat dilarang keras, sebagaimana peringatan Allah dalam QS. Ar-Rum ayat 41 bahwa kerusakan di darat dan laut disebabkan ulah tangan manusia. Sebagai contoh kasus: Sebuah areal persawahan di dekat pemukiman Gorontalo mulai tercemar akibat warga yang sering membuang sampah sembarangan ke saluran irigasi sekunder. Ketika musim hujan turun (akibat pengaruh iklim tropis), saluran tersumbat dan sawah terendam banjir luapan bercampur sampah plastik, merusak tanaman padi yang baru ditanam.", q: "Tindakan preventif (pencegahan) yang mencerminkan kecerdasan ekologis sekaligus pengamalan 'Kurikulum Berbasis Cinta Lingkungan' untuk mengatasi kasus di atas adalah...", options: ["Membangun tanggul beton tinggi mengelilingi seluruh sawah.", "Menyediakan tong sampah dan membuat aturan dilarang membuang sampah ke irigasi.", "Menjual lahan sawah tersebut untuk dijadikan kawasan perumahan.", "Membiarkan saja karena banjir adalah murni takdir cuaca alam."], ans: 1 },
+            { level: 2, pts: 10, stimulus: "Letak geografis sangat mempengaruhi mata pencaharian penduduk. Penduduk yang tinggal di pesisir pantai Teluk Tomini (Gorontalo bagian selatan) mayoritas berprofesi sebagai nelayan. Sedangkan penduduk yang menetap di dataran rendah seperti pedalaman Limboto Barat, Kecamatan Pone, lebih optimal mengembangkan sektor pertanian padi sawah atau jagung karena tekstur tanah lempung liat yang mampu menahan air, ditambah ketersediaan air sungai. Perbedaan ini menunjukkan bahwa manusia beradaptasi dengan kondisi lingkungan sekitarnya untuk bertahan hidup.", q: "Mengapa profesi mayoritas penduduk Desa Pone berbeda dengan penduduk di pesisir Teluk Tomini meskipun sama-sama berada di wilayah Provinsi Gorontalo?", options: ["Karena penduduk Pone tidak menyukai ikan laut.", "Karena adaptasi pemanfaatan potensi geografis (dataran rendah vs pesisir) yang berbeda.", "Pemerintah melarang penduduk dataran rendah menjadi nelayan.", "Angin muson tidak pernah melewati daerah pesisir pantai."], ans: 1 },
+            { level: 2, pts: 10, stimulus: "Sebuah kapal kargo berangkat dari Tokyo (Jepang/Asia Timur) menuju Sydney (Australia). Jika kita melihat peta dunia, rute pelayaran paling singkat dan efisien untuk kapal tersebut adalah berlayar lurus ke selatan dengan membelah wilayah kepulauan Indonesia. Kapal tersebut akan melintasi ALKI (Alur Laut Kepulauan Indonesia) yang melalui perairan antara pulau Kalimantan dan Sulawesi (Selat Makassar). Fakta rute pelayaran ini membuktikan bahwa Indonesia memegang peran penting dalam kelancaran sistem perhubungan dan logistik dunia berkat posisi geografisnya.", q: "Berdasarkan rute perjalanan kapal kargo Jepang ke Australia tersebut, kesimpulan apa yang membuktikan peran strategis geografis Indonesia?", options: ["Indonesia penghasil kapal kargo terbesar di Asia.", "Wilayah laut Indonesia menjadi jalur transit perhubungan maritim internasional.", "Indonesia merupakan benua mandiri di tengah samudra.", "Satu-satunya sumber bahan bakar kapal ada di Indonesia."], ans: 1 },
+
+            // Level 3: Penalaran HOTS (No 8-10, @12 pts = 36) -> Total 100
+            { level: 3, pts: 12, stimulus: "Petani A di Desa Pone biasanya menanam padi lokal yang membutuhkan waktu panen lama (5 bulan) dan asupan air yang sangat banyak dari curah hujan (Muson Barat). Namun belakangan ini, BMKG Gorontalo memprediksi akan terjadi fenomena 'El Nino' kuat yang menyebabkan musim kemarau lebih panjang dan curah hujan sangat drastis berkurang di wilayah Indonesia tengah dan timur. Meskipun memiliki sumur bor irigasi kecil, debit airnya sangat terbatas. Berlandaskan sikap syukur (tidak mengeluh) dan pemecahan masalah cerdas (HOTS), Petani A harus mengambil keputusan strategi tanam musim ini.", q: "Berdasarkan analisis prediksi iklim dan kondisi ketersediaan air, keputusan strategis apa yang paling tepat diambil oleh Petani A?", options: ["Tetap menanam padi lokal seperti biasa dan berdoa agar BMKG salah.", "Beralih menanam komoditas palawija (seperti jagung/kacang) yang tahan kering sementara waktu.", "Menghentikan total aktivitas pertanian selama setahun dan mencari pekerjaan lain.", "Memompa air sungai besar-besaran meski merugikan jatah air desa tetangga."], ans: 1 },
+            { level: 3, pts: 12, stimulus: "Indonesia, karena posisi geologinya (pertemuan lempeng Eurasia, Indo-Australia, Pasifik) rentan terhadap gempa tektonik. Meskipun Gorontalo bukan wilayah megathrust selatan, aktivitas tektonik utara Sulawesi tetap membawa risiko. Suatu ketika, usai gempa sedang melanda, saluran irigasi utama yang terbuat dari susunan batu penopang areal persawahan Pone mengalami keretakan parah. Jika dibiarkan, air irigasi terbuang sia-sia dan sawah di hilir kekeringan. Dana desa terbatas dan butuh waktu lama untuk cair. Warga desa mengingat tradisi 'Huyula' (Gotong Royong) yang didasari rasa cinta (KBC) dan tolong-menolong.", q: "Langkah solutif kolektif (bersama) paling logis dan cepat berdasarkan kearifan lokal untuk mengatasi ancaman krisis air pertanian akibat gempa tersebut adalah...", options: ["Menunggu dana bantuan pemerintah pusat turun untuk membangun bendungan baru.", "Saling menyalahkan warga yang sawahnya berada di dekat saluran yang retak.", "Menerapkan 'Huyula' untuk menambal darurat keretakan irigasi menggunakan tanah liat, bambu, & karung pasir secara swadaya.", "Semua petani beralih membeli air tangki secara pribadi dari kota untuk mengairi sawah."], ans: 2 },
+            { level: 3, pts: 12, stimulus: "Peta wilayah Asia Tenggara menunjukkan bahwa Indonesia berbatasan laut langsung dengan 10 negara, seperti Malaysia, Filipina, Singapura, dan lain-lain. Wilayah utara Sulawesi berhadapan dengan perairan internasional menuju Filipina. Letak ini menguntungkan untuk ekspor, tetapi memiliki kelemahan: rawan pencurian hasil laut (illegal fishing) atau penyelundupan di daerah perbatasan terpencil. Sebagai generasi muslim penerus bangsa yang memiliki kecintaan pada tanah air (Hubbul Wathon Minal Iman), menjaga kedaulatan laut dan batas geografis negara adalah kewajiban yang dititipkan Allah.", q: "Menganalisis keuntungan dan kelemahan posisi berbatasan dengan banyak negara laut, upaya jangka panjang paling strategis untuk menjaga kedaulatan geografis (berdasarkan bacaan) adalah...", options: ["Menutup seluruh pelabuhan laut internasional di Indonesia bagian utara.", "Menguatkan sistem keamanan laut (patroli) serta meningkatkan pendidikan bela negara bagi warga pesisir.", "Memindahkan seluruh penduduk pulau-pulau terluar ke pulau Jawa agar aman.", "Membiarkan nelayan asing menangkap ikan di laut kita karena menganggap wilayah laut tidak bertuan."], ans: 1 }
+        ];
+
+        // ==========================================
+        // STATE MANAGEMENT
+        // ==========================================
+        
+        // PENTING: URL Web App dari Google Apps Script
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzvMUkGZu7-rd0cMtsRtTyF6mZnM71oWFrGKmbmunqr84pmYXaTfELTBo040gJsDAVLOw/exec"; 
+
+        const state = {
+            student: { nama: '', kelas: '', date: '' },
+            progress: {
+                belajarIndex: 0,
+                belajarDone: [false, false, false, false, false], // track slide sub-quiz
+                bermainAnswers: [], // store answers boolean
+                berlatihScores: [] // store object {pts, correct, level}
+            },
+            unlocked: {
+                bermain: false,
+                berlatih: false
+            }
+        };
+
+        // ==========================================
+        // NAVIGATION LOGIC
+        // ==========================================
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(el => {
+                el.classList.remove('active');
+                el.classList.remove('fade-in');
+            });
+            const target = document.getElementById('screen-' + screenId);
+            if(target) {
+                target.classList.add('active');
+                target.classList.add('fade-in');
+            }
+        }
+
+        function navigate(to) {
+            if(to === 'dashboard') {
+                updateDashboard();
+            }
+            if(to === 'belajar') {
+                renderBelajarSlide(state.progress.belajarIndex);
+            }
+            if(to === 'bermain' && state.unlocked.bermain) {
+                state.progress.bermainIndex = 0;
+                state.progress.bermainAnswers = [];
+                renderBermain(0);
+            }
+            if(to === 'berlatih' && state.unlocked.berlatih) {
+                state.progress.berlatihIndex = 0;
+                state.progress.berlatihScores = [];
+                renderBerlatih(0);
+            }
+            showScreen(to);
+        }
+
+        function handleMenuClick(menu) {
+            if (menu === 'bermain' && !state.unlocked.bermain) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Terkunci! 🔒',
+                    text: 'Ananda harus menyelesaikan seluruh 5 materi di menu BELAJAR terlebih dahulu.',
+                    confirmButtonColor: '#0F5132'
+                });
+                return;
+            }
+            if (menu === 'berlatih' && !state.unlocked.berlatih) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Terkunci! 🔒',
+                    text: 'Ananda harus menyelesaikan seluruh 10 tantangan di menu BERMAIN terlebih dahulu.',
+                    confirmButtonColor: '#0F5132'
+                });
+                return;
+            }
+            navigate(menu);
+        }
+
+        function confirmExit(target) {
+            Swal.fire({
+                title: 'Kembali ke Menu Utama?',
+                text: "Progres di bagian ini mungkin harus diulang dari awal.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0F5132',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Kembali',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    navigate(target);
+                }
+            })
+        }
+
+        // Modals (Cover)
+        function showModal(id) { document.getElementById('modal-' + id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById('modal-' + id).classList.add('hidden'); }
+
+        // ==========================================
+        // FORM & DASHBOARD
+        // ==========================================
+        function submitForm() {
+            const nama = document.getElementById('input-nama').value.trim();
+            const kelas = document.getElementById('input-kelas').value.trim();
+            
+            if(!nama || !kelas) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Nama dan Kelas wajib diisi ya!',
+                    confirmButtonColor: '#0F5132'
+                });
+                return;
+            }
+
+            state.student.nama = nama;
+            state.student.kelas = kelas;
+            state.student.date = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+            
+            initGuide();
+            navigate('guide');
+        }
+
+        function updateDashboard() {
+            document.getElementById('dash-nama').textContent = state.student.nama;
+            
+            // Unlock UI Logic
+            const cb = document.getElementById('card-bermain');
+            const cl = document.getElementById('card-berlatih');
+            const lb = document.getElementById('lock-bermain');
+            const ll = document.getElementById('lock-berlatih');
+
+            if(state.unlocked.bermain) {
+                cb.classList.remove('opacity-70');
+                lb.style.display = 'none';
+            }
+            if(state.unlocked.berlatih) {
+                cl.classList.remove('opacity-70');
+                ll.style.display = 'none';
+            }
+        }
+
+        // ==========================================
+        // GUIDE SLIDES LOGIC
+        // ==========================================
+        const guides = [
+            { t: "Halo, Selamat Datang!", d: "Di Media Pembelajaran Interaktif (MPI) <b>Letak Geografis Indonesia</b>. Siapkan semangat belajarmu hari ini!" },
+            { t: "Belajar Berurutan", d: "Kamu harus membuka menu secara berurutan. Baca materi di <b>BELAJAR</b>, tuntaskan misi <b>BERMAIN</b>, lalu hadapi uji <b>BERLATIH</b>." },
+            { t: "Nilai Cinta & Al-Qur'an", d: "Temukan pesan-pesan indah dari Al-Qur'an dan nilai cinta alam lingkungan Desa Pone di dalam setiap materi." }
+        ];
+        let currentGuide = 0;
+
+        function initGuide() {
+            currentGuide = 0;
+            renderGuide();
+        }
+
+        function renderGuide() {
+            const container = document.getElementById('guide-content-area');
+            const g = guides[currentGuide];
+            container.innerHTML = `
+                <div class="slide-up">
+                    <div class="w-24 h-24 bg-green-100 rounded-full flex justify-center items-center mx-auto mb-6 text-kemenag text-4xl shadow-inner">
+                        <i class="fa-solid ${currentGuide===0 ? 'fa-hand-wave' : (currentGuide===1 ? 'fa-route' : 'fa-book-quran')}"></i>
+                    </div>
+                    <h2 class="text-3xl font-display font-bold text-gray-800 mb-4">${g.t}</h2>
+                    <p class="text-lg text-gray-600 max-w-md mx-auto leading-relaxed">${currentGuide===0 ? g.d.replace('Selamat Datang!', 'Selamat Datang, ' + state.student.nama + '!') : g.d}</p>
+                </div>
+            `;
+
+            // Dots
+            const dots = document.getElementById('guide-dots');
+            dots.innerHTML = guides.map((_, i) => `<div class="w-3 h-3 rounded-full ${i===currentGuide ? 'bg-kemenag w-6 transition-all' : 'bg-gray-300'}"></div>`).join('');
+            
+            // Buttons
+            document.getElementById('btn-guide-prev').classList.toggle('hidden', currentGuide === 0);
+            const btnNext = document.getElementById('btn-guide-next');
+            if(currentGuide === guides.length - 1) {
+                btnNext.innerHTML = 'Masuk ke Menu Utama <i class="fa-solid fa-rocket ml-1"></i>';
+                btnNext.onclick = () => { navigate('dashboard'); };
+            } else {
+                btnNext.innerHTML = 'Selanjutnya';
+                btnNext.onclick = () => { changeGuideSlide(1); };
+            }
+        }
+
+        function changeGuideSlide(dir) {
+            currentGuide += dir;
+            renderGuide();
+        }
+
+        // ==========================================
+        // BELAJAR (MATERI) LOGIC
+        // ==========================================
+        function renderBelajarSlide(index) {
+            state.progress.belajarIndex = index;
+            const data = belajarData[index];
+            const container = document.getElementById('materi-content-area');
+            
+            document.getElementById('materi-progress-text').textContent = `Bagian ${index + 1} dari 5`;
+            document.getElementById('materi-progress-bar').style.width = `${((index + 1) / 5) * 100}%`;
+
+            let quizHtml = `
+                <div class="mt-8 border-t-2 border-dashed border-gray-300 pt-6 slide-up delay-200">
+                    <h4 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-puzzle-piece text-blue-500 mr-2"></i> Tantangan Pemahaman</h4>
+                    <p class="text-sm font-medium mb-4">${data.quiz.q}</p>
+                    <div class="space-y-2" id="belajar-quiz-opts">
+                        ${data.quiz.options.map((opt, i) => `
+                            <button onclick="checkBelajarQuiz(${index}, ${i})" id="bq-${index}-${i}" class="option-btn w-full text-left p-3 rounded-xl border-2 border-gray-200 hover:bg-gray-50 transition font-medium text-sm">
+                                ${String.fromCharCode(65+i)}. ${opt}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div id="belajar-next-wrapper" class="hidden mt-6 text-center">
+                        <p class="text-green-600 font-bold mb-3"><i class="fa-solid fa-circle-check mr-1"></i> Hebat! Jawabanmu Tepat.</p>
+                        <button onclick="nextBelajarSlide()" class="py-2 px-6 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-md">Lanjut Materi Selanjutnya <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = `
+                <div class="slide-up">
+                    <h3 class="text-2xl font-display font-bold text-kemenag-dark mb-4 border-b-2 border-kemenag-gold pb-2 inline-block">${data.title}</h3>
+                    <div class="prose prose-sm md:prose-base prose-green max-w-none text-gray-700 leading-relaxed text-justify">
+                        ${data.content}
+                    </div>
+                    ${quizHtml}
+                </div>
+            `;
+
+            // If already answered before, show next button
+            if(state.progress.belajarDone[index]) {
+                const correctIdx = data.quiz.answer;
+                const btn = document.getElementById(`bq-${index}-${correctIdx}`);
+                if(btn) {
+                    btn.classList.add('correct');
+                    document.getElementById('belajar-next-wrapper').classList.remove('hidden');
+                    // disable all
+                    data.quiz.options.forEach((_, i) => document.getElementById(`bq-${index}-${i}`).disabled = true);
+                    
+                    if(index === belajarData.length - 1) {
+                         document.querySelector('#belajar-next-wrapper button').innerHTML = 'Selesaikan & Buka BERMAIN <i class="fa-solid fa-unlock ml-1"></i>';
+                    }
+                }
+            }
+        }
+
+        function checkBelajarQuiz(slideIndex, selectedOptionIndex) {
+            if(state.progress.belajarDone[slideIndex]) return; // already done
+
+            const correct = belajarData[slideIndex].quiz.answer;
+            const buttons = document.querySelectorAll('#belajar-quiz-opts button');
+            
+            buttons.forEach(b => b.disabled = true); // lock
+
+            if(selectedOptionIndex === correct) {
+                document.getElementById(`bq-${slideIndex}-${selectedOptionIndex}`).classList.add('correct');
+                state.progress.belajarDone[slideIndex] = true;
+                
+                const nextBtnWrap = document.getElementById('belajar-next-wrapper');
+                nextBtnWrap.classList.remove('hidden');
+                nextBtnWrap.classList.add('fade-in');
+
+                if(slideIndex === belajarData.length - 1) {
+                    nextBtnWrap.querySelector('button').innerHTML = 'Selesaikan & Buka BERMAIN <i class="fa-solid fa-unlock ml-1"></i>';
+                }
+
+                // Play soft success sound conceptually
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Benar!', showConfirmButton: false, timer: 1500 });
+
+            } else {
+                document.getElementById(`bq-${slideIndex}-${selectedOptionIndex}`).classList.add('wrong');
+                document.getElementById(`bq-${slideIndex}-${correct}`).classList.add('correct');
+                
+                Swal.fire({
+                    icon: 'error', title: 'Kurang Tepat',
+                    text: 'Coba baca materi di atas lagi ya.',
+                    confirmButtonColor: '#0F5132'
+                }).then(() => {
+                    // Reset
+                    buttons.forEach(b => {
+                        b.disabled = false;
+                        b.classList.remove('correct', 'wrong');
+                    });
+                });
+            }
+        }
+
+        function nextBelajarSlide() {
+            let nextIndex = state.progress.belajarIndex + 1;
+            if(nextIndex < belajarData.length) {
+                renderBelajarSlide(nextIndex);
+            } else {
+                // Finish Belajar
+                state.unlocked.bermain = true;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Luar Biasa! 🎉',
+                    text: 'Kamu telah menyelesaikan semua materi Belajar. Menu BERMAIN kini terbuka!',
+                    confirmButtonColor: '#0F5132'
+                }).then(() => {
+                    navigate('dashboard');
+                });
+            }
+        }
+
+
+        // ==========================================
+        // BERMAIN LOGIC (Gamification, Sortable)
+        // ==========================================
+        function renderBermain(index) {
+            state.progress.bermainIndex = index;
+            const data = bermainData[index];
+            const container = document.getElementById('bermain-content-area');
+            document.getElementById('bermain-counter').textContent = `${index + 1}/10`;
+
+            let interactionHtml = '';
+
+            if(data.type === 'pg') {
+                interactionHtml = `
+                    <div class="space-y-3 mt-4" id="bermain-opts">
+                        ${data.options.map((opt, i) => `
+                            <button onclick="checkBermainPG(${index}, ${i})" class="w-full text-left p-4 rounded-xl border-2 border-orange-200 bg-white hover:bg-orange-50 font-medium text-sm text-gray-700 shadow-sm transition b-opt">
+                                ${opt}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } 
+            else if (data.type === 'pg_kompleks') {
+                interactionHtml = `
+                    <div class="space-y-3 mt-4" id="bermain-opts-kompleks">
+                        ${data.options.map((opt, i) => `
+                            <label class="flex items-start p-4 rounded-xl border-2 border-orange-200 bg-white hover:bg-orange-50 cursor-pointer shadow-sm transition">
+                                <input type="checkbox" value="${i}" class="mt-1 w-5 h-5 text-orange-500 rounded focus:ring-orange-400 chk-kompleks">
+                                <span class="ml-3 font-medium text-sm text-gray-700">${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <button onclick="checkBermainKompleks(${index})" class="w-full mt-4 py-3 bg-orange-500 text-white font-bold rounded-xl shadow">Kunci Jawaban</button>
+                `;
+            }
+            else if (data.type === 'order' || data.type === 'match') {
+                // We use Sortable for both. Order is a single list. Match is reordering right-side to match left-side.
+                if(data.type === 'order') {
+                    // Randomize items initially
+                    let shuffled = [...data.items].sort(() => Math.random() - 0.5);
+                    interactionHtml = `
+                        <p class="text-xs text-orange-600 mb-2 italic"><i class="fa-solid fa-hand-pointer mr-1"></i> Sentuh, tahan, dan geser (drag & drop) kotak di bawah ini untuk mengurutkan.</p>
+                        <ul id="sortable-list" class="space-y-2 mt-2">
+                            ${shuffled.map(item => `
+                                <li data-id="${item.id}" class="drag-item bg-white border-2 border-orange-200 p-3 rounded-lg flex items-center shadow-sm font-medium text-sm">
+                                    <i class="fa-solid fa-grip-vertical text-gray-400 mr-3"></i> ${item.text}
+                                </li>
+                            `).join('')}
+                        </ul>
+                        <button onclick="checkBermainOrder(${index})" class="w-full mt-6 py-3 bg-orange-500 text-white font-bold rounded-xl shadow">Cek Urutan</button>
+                    `;
+                } 
+                else if (data.type === 'match') {
+                    // Left fixed, Right sortable
+                    let shuffledAnswers = [...data.pairs].sort(() => Math.random() - 0.5);
+                    interactionHtml = `
+                        <p class="text-xs text-orange-600 mb-4 italic"><i class="fa-solid fa-hand-pointer mr-1"></i> Geser kotak sebelah KANAN (putih) agar sejajar/cocok dengan kotak KIRI (abu-abu).</p>
+                        <div class="flex gap-2">
+                            <div class="w-1/2 space-y-2 flex flex-col justify-between">
+                                ${data.pairs.map(p => `
+                                    <div class="bg-gray-100 border border-gray-300 p-3 rounded-lg text-xs font-bold text-gray-700 h-16 flex items-center shadow-inner">
+                                        ${p.q}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <ul id="sortable-match" class="w-1/2 space-y-2 flex flex-col justify-between">
+                                ${shuffledAnswers.map(p => `
+                                    <li data-match="${data.pairs.findIndex(x=>x.a===p.a)}" class="drag-item bg-white border-2 border-orange-300 p-3 rounded-lg text-xs font-medium text-gray-800 h-16 flex items-center shadow-sm cursor-grab">
+                                        <i class="fa-solid fa-bars text-gray-300 mr-2 text-xs"></i> ${p.a}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                        <button onclick="checkBermainMatch(${index})" class="w-full mt-6 py-3 bg-orange-500 text-white font-bold rounded-xl shadow">Cek Pasangan</button>
+                    `;
+                }
+            }
+
+            container.innerHTML = `
+                <div class="slide-up">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 mb-6 relative">
+                        <div class="absolute -top-3 -left-3 w-8 h-8 bg-kemenag-gold text-white rounded-full flex items-center justify-center font-bold shadow-md"><i class="fa-solid fa-book-open-reader text-xs"></i></div>
+                        <p class="text-sm text-gray-700 leading-relaxed text-justify mt-2 indent-4">${data.stimulus}</p>
+                    </div>
+                    
+                    <div class="bg-orange-50 p-1">
+                        <h4 class="font-bold text-gray-800 mb-3 text-lg">${data.q}</h4>
+                        ${interactionHtml}
+                    </div>
+                </div>
+            `;
+
+            // Initialize SortableJS if needed
+            if(data.type === 'order') {
+                new Sortable(document.getElementById('sortable-list'), { animation: 150, ghostClass: 'sortable-ghost' });
+            } else if (data.type === 'match') {
+                new Sortable(document.getElementById('sortable-match'), { animation: 150, ghostClass: 'sortable-ghost' });
+            }
+        }
+
+        // Logic Checkers for Bermain
+        function showBermainFeedback(isCorrect, index) {
+            state.progress.bermainAnswers[index] = isCorrect;
+            if(isCorrect) {
+                Swal.fire({ icon: 'success', title: 'Hebat!', text: 'Jawabanmu benar.', confirmButtonColor: '#ea580c' }).then(() => nextBermain());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Ups!', text: 'Jawaban belum tepat, mari coba lagi.', confirmButtonColor: '#ea580c' });
+            }
+        }
+
+        function checkBermainPG(index, optIndex) {
+            const correct = bermainData[index].ans;
+            const buttons = document.querySelectorAll('.b-opt');
+            if(optIndex === correct) {
+                buttons[optIndex].classList.add('bg-green-100', 'border-green-500', 'text-green-800');
+                showBermainFeedback(true, index);
+            } else {
+                buttons[optIndex].classList.add('bg-red-100', 'border-red-500', 'text-red-800');
+                showBermainFeedback(false, index);
+            }
+        }
+
+        function checkBermainKompleks(index) {
+            const correctIds = bermainData[index].ans; // array
+            const checkboxes = document.querySelectorAll('.chk-kompleks');
+            let selected = [];
+            checkboxes.forEach((chk, i) => { if(chk.checked) selected.push(i); });
+            
+            // Compare arrays
+            const isCorrect = selected.length === correctIds.length && selected.every(val => correctIds.includes(val));
+            showBermainFeedback(isCorrect, index);
+        }
+
+        function checkBermainOrder(index) {
+            const list = document.querySelectorAll('#sortable-list li');
+            let currentOrder = Array.from(list).map(li => li.getAttribute('data-id'));
+            // correct order is simply '1','2','3','4'
+            const isCorrect = currentOrder.join(',') === '1,2,3,4';
+            showBermainFeedback(isCorrect, index);
+        }
+
+        function checkBermainMatch(index) {
+            const rightList = document.querySelectorAll('#sortable-match li');
+            let isCorrect = true;
+            rightList.forEach((li, i) => {
+                // Does the right item's original data-match index equal its current row index (i)?
+                if(parseInt(li.getAttribute('data-match')) !== i) {
+                    isCorrect = false;
+                }
+            });
+            showBermainFeedback(isCorrect, index);
+        }
+
+        function nextBermain() {
+            let nextIndex = state.progress.bermainIndex + 1;
+            if(nextIndex < bermainData.length) {
+                renderBermain(nextIndex);
+            } else {
+                // Calculate score Bermain
+                const correctCount = state.progress.bermainAnswers.filter(a => a).length;
+                state.unlocked.berlatih = true;
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Misi Selesai! 🏆',
+                    html: `Kamu berhasil menyelesaikan 10 Tantangan Bermain.<br><b>Akurasi: ${correctCount}/10</b><br><br>Sekarang Menu BERLATIH (Asesmen) telah Terbuka.`,
+                    confirmButtonColor: '#0F5132'
+                }).then(() => {
+                    navigate('dashboard');
+                });
+            }
+        }
+
+        // ==========================================
+        // BERLATIH LOGIC (Assessment)
+        // ==========================================
+        function renderBerlatih(index) {
+            state.progress.berlatihIndex = index;
+            const data = berlatihData[index];
+            const container = document.getElementById('berlatih-content-area');
+            document.getElementById('berlatih-counter').textContent = `Soal ${index + 1}/10`;
+
+            let badgeColor = data.level === 1 ? 'bg-green-500' : (data.level === 2 ? 'bg-blue-500' : 'bg-red-500');
+            let badgeText = `Level ${data.level} • ${data.pts} Poin`;
+
+            container.innerHTML = `
+                <div class="slide-up max-w-2xl mx-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="${badgeColor} text-white px-3 py-1 rounded-full text-xs font-bold shadow">${badgeText}</span>
+                    </div>
+
+                    <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
+                        <p class="text-sm md:text-base text-gray-700 leading-relaxed text-justify indent-6">${data.stimulus}</p>
+                    </div>
+                    
+                    <h4 class="font-bold text-gray-800 mb-4 text-lg border-l-4 border-red-700 pl-3">${data.q}</h4>
+                    
+                    <div class="space-y-3" id="berlatih-opts">
+                        ${data.options.map((opt, i) => `
+                            <label class="flex items-start p-4 rounded-xl border-2 border-gray-200 bg-white hover:border-red-400 cursor-pointer shadow-sm transition group">
+                                <input type="radio" name="soal_berlatih" value="${i}" class="mt-1 w-5 h-5 text-red-600 focus:ring-red-500 rounded-full border-gray-300">
+                                <span class="ml-3 font-medium text-sm md:text-base text-gray-700 group-hover:text-gray-900">${String.fromCharCode(65+i)}. ${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+
+                    <button onclick="submitBerlatih(${index})" class="w-full mt-8 py-3 bg-red-700 hover:bg-red-800 text-white font-bold rounded-xl shadow-lg transition-transform hover:-translate-y-1">
+                        ${index === 9 ? 'Selesai & Lihat Laporan' : 'Simpan & Lanjut Soal'} <i class="fa-solid fa-chevron-right ml-2"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        function submitBerlatih(index) {
+            const selected = document.querySelector('input[name="soal_berlatih"]:checked');
+            if(!selected) {
+                Swal.fire({ icon: 'warning', text: 'Pilih jawaban terlebih dahulu!', toast: true, position: 'center' });
+                return;
+            }
+
+            const ansVal = parseInt(selected.value);
+            const data = berlatihData[index];
+            const isCorrect = ansVal === data.ans;
+            const chosenLetter = String.fromCharCode(65 + ansVal);
+
+            // Store result silently (Assessment format)
+            state.progress.berlatihScores[index] = {
+                pts: isCorrect ? data.pts : 0,
+                correct: isCorrect,
+                level: data.level,
+                chosenLetter: chosenLetter
+            };
+
+            let nextIndex = index + 1;
+            if(nextIndex < berlatihData.length) {
+                renderBerlatih(nextIndex);
+            } else {
+                finishBerlatih();
+            }
+        }
+
+        function finishBerlatih() {
+            Swal.fire({
+                title: 'Menyimpan Hasil...',
+                text: 'Mohon tunggu, sedang mengirim data ke server...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            generateReportData();
+
+            let totalScore = 0;
+            let jumlahBenar = 0;
+            let jawabanSiswa = [];
+
+            state.progress.berlatihScores.forEach(res => {
+                totalScore += res.pts;
+                if(res.correct) jumlahBenar++;
+                jawabanSiswa.push(res.chosenLetter || "-");
+            });
+
+            let jumlahSalah = 10 - jumlahBenar;
+
+            const payload = {
+                nama: state.student.nama,
+                kelas: state.student.kelas,
+                totalNilai: totalScore,
+                jumlahBenar: jumlahBenar,
+                jumlahSalah: jumlahSalah,
+                jawaban: jawabanSiswa
+            };
+
+            if (GAS_URL && GAS_URL !== "URL_APPS_SCRIPT_ANDA_DISINI") {
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(() => {
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: 'Hasil asesmen telah disimpan ke database Guru.',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => { navigate('report'); });
+                })
+                .catch(err => {
+                    console.error("GAS Error:", err);
+                    Swal.fire({
+                        title: 'Laporan Siap',
+                        text: 'Gagal mengirim ke server (cek koneksi), tapi laporan lokal siap dilihat.',
+                        icon: 'warning',
+                        confirmButtonText: 'Lihat Laporan'
+                    }).then(() => { navigate('report'); });
+                });
+            } else {
+                Swal.fire({
+                    title: 'Asesmen Selesai',
+                    text: 'Sedang menyiapkan Laporan Hasil Belajar...',
+                    icon: 'info',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => { navigate('report'); });
+            }
+        }
+
+        // ==========================================
+        // REPORT / PDF LOGIC
+        // ==========================================
+        function generateReportData() {
+            // Fill Identitas
+            document.getElementById('rep-nama').textContent = state.student.nama.toUpperCase();
+            document.getElementById('rep-kelas').textContent = state.student.kelas.toUpperCase();
+            document.getElementById('rep-tanggal').textContent = state.student.date;
+            document.getElementById('rep-ttd-tgl').textContent = state.student.date;
+
+            // Calculate Scores
+            let totalScore = 0;
+            let lvl1Correct = 0, lvl2Correct = 0, lvl3Correct = 0;
+            
+            state.progress.berlatihScores.forEach(res => {
+                totalScore += res.pts;
+                if(res.correct) {
+                    if(res.level === 1) lvl1Correct++;
+                    if(res.level === 2) lvl2Correct++;
+                    if(res.level === 3) lvl3Correct++;
+                }
+            });
+
+            document.getElementById('rep-skor-akhir').textContent = totalScore;
+            
+            let predikat = "Perlu Bimbingan";
+            if(totalScore >= 90) predikat = "Sangat Baik (Mahir)";
+            else if(totalScore >= 75) predikat = "Baik (Cakap)";
+            else if(totalScore >= 60) predikat = "Cukup (Dasar)";
+            document.getElementById('rep-predikat').textContent = predikat;
+
+            document.getElementById('rep-lvl1').textContent = `${lvl1Correct} / 3`;
+            document.getElementById('rep-lvl2').textContent = `${lvl2Correct} / 4`;
+            document.getElementById('rep-lvl3').textContent = `${lvl3Correct} / 3`;
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('report-content');
+            const opt = {
+                margin:       0.5,
+                filename:     `Laporan_MPI_${state.student.nama.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Tambahkan class khusus saat render PDF agar margin dan bayangan menyesuaikan
+            element.classList.add('print-only');
+            
+            Swal.fire({
+                title: 'Menyiapkan PDF',
+                text: 'Mohon tunggu sebentar...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.classList.remove('print-only');
+                Swal.close();
+            }).catch(err => {
+                element.classList.remove('print-only');
+                Swal.fire('Error', 'Gagal membuat PDF. Gunakan fitur Print Browser.', 'error');
+                console.error(err);
+            });
+        }
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        window.onload = () => {
+            // Animasi Splash Screen 2 detik
+            setTimeout(() => {
+                document.getElementById('screen-splash').classList.remove('active');
+                showScreen('cover');
+            }, 2000);
+        };
+
+    </script>
+</body>
+</html>
